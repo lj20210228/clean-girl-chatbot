@@ -91,7 +91,7 @@ export default function App() {
           "Authorization": `Bearer ${GROQ_API_KEY}`
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-20b",
+          model: "qwen/qwen3.8-27b",
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             ...messages.filter(m => m.id !== 'init-1').map(m => ({
