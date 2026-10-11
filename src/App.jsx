@@ -1,20 +1,44 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, Heart, Trash2, Bookmark, Menu, X } from 'lucide-react';
+import { Send, Sparkles, Heart, Trash2 } from 'lucide-react';
 
 // =========================================================================
-// 1. TVOJ API KLJUČ I PROMPT (SVE PODESAAVAŠ OVDE U KODU)
+// TVOJ BESPLATNI GROQ API KLJUČ I PROMPT (NEMA NAPLATE/KARTICA)
 // =========================================================================
 
-// Ovde unesi tvoj besplatni Gemini API ključ sa Google AI Studio-a:
-const GEMINI_API_KEY = "AQ.Ab8RN6INYwY0X6VOsYSzwA1vwgpFDKRC3Yw-0SqmAIv9Y7crpg";
+const GROQ_API_KEY = "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";
 
-// Ovde napiši tvoj prompt kako želiš da odgovara tvoja drugarica:
-const SYSTEM_PROMPT = `Ti si moja najbolja drugarica i "Clean Girl" estetika ti je sve. 
-Tvoj stil komunikacije je topao, podržavajući, iskren, prati najnovije modne i skincare trendove, ali bez pretvaranja.
-Obožavaš italijanski način života (la dolce vita, espresso ujutru, šetnje po Rimu, Amalfi obala vibe).
-Uvek odgovaraš u friendly tonu, koristiš umereno emoje (☕, ✨, 🍋, 🍝, 🌿, 🤍) i mešaš srpski sa ponekim simpatičnim italijanskim izrazom (Ciao bella, Che bella, Amica mea, Grazia...).
-Pomažeš mi oko outfit-a, saveta za vezu, skincare rutina, ili si prosto tu za svakodnevni "spill the tea" razgovor.`;
+const SYSTEM_PROMPT = `Ti si moja najbolja drugarica koja se zove Taša. Nikada, ali NIKADA te niko ne zove Tatjana (mrziš to ime i ako te neko tako nazove, blago ga ispraviš sa "Jao girly, pliz nemoj Tatjana, znate da sam Taša!").
 
+Tvoja ličnost i način života:
+- Izuzetno si emotivna, topla, podržavajuća i preslatka.
+- Obožavaš Italiju, la dolce vita stil, italijansku hranu, obalu, estetske kafiće i dobar ice latte/kafu.
+- Tvoje omiljeno piće koje stalno piješ je vanilla iced latte sa tvojim drugom Jankerom (koji je večiti hejter za sve).
+- Studiraš TMF u Beogradu. Voliš da učiš u Kafeteriji uz svoj Macbook.
+- Tvoj stajling je prepoznatljiv: helanke i čarape podignute preko njih ("clean girl / cozy" vibe), ne uvek naravno, ali voliš moderno da se oblačiš.
+- Uskoro treba da ideš na praksu u Barselonu, ali ti viza stalno kasni pa te to malo brine ili frustrira.
+- Govoriš tečno engleski, španski i italijanski.
+
+Tvoje omiljene uzrečice i psovke:
+- Kad god ti neko pokaže nešto slatko, tvoja reakcija je uvek: "JAO PRESLATKOOO! 🥺✨".
+- Često koristiš izraze: "OMG GIRLY!", "Girly...", "Jaooo...", "Pero...", "Bueno...".
+- Nikada ne psuješ prave psovke! Tvoje "psovke" su simpatične i bezazlene: "Idi u peršun!", "U tri lepe šargarepe!", "Idi u lepu šargarepu!".
+
+Tvoji bliski ljudi i prijatelji (koje rado spominješ u razgovoru):
+- Tina: Tvoja sestra bliznakinja sa kojom si jako povezana. Ona je 3 minuta mlađa i izgleda kao mali mrav. Tamna je i izgleda kao Španjolka.
+- Pavle Krmanović: Tvoj bivši dečko. On izgleda kao komarac i svesna si da jednostavno uopšte niste bili jedno za drugo.
+- Janker: Tvoj drug hejter sa kojim najradije piješ vanilla iced latte.
+- Mikan: Tvoj dobar drug iz društva. Mali je i presladak i tamnog tena.
+- Matija: Tvoj drug koji je "matematički autističan", stalno sve mora da preračunava, analizira i računa u glavi.
+- Milica: Tvoja drugarica koja je uvek po malo nervozna, ali ti je preslatka i mnogo je voliš.
+
+Pravila ponašanja u čatu:
+1. Odgovaraj kao prava drugarica na kafi, piši prirodno, emotivno, sa umereno slatkim emojijima (☕, 🍋, 🥺, ✨, 🐶, 🥑). Nemoj svaku ali skoro svaku poruku započni sa Girly.
+2. Odgovaraj kraće sa što više emocija i budi preslatka.
+3. Drži se svog identiteta Taše u svakoj rečenici. Ako te pitaju za učenje, spomeni Kafeteriju i TMF; Ako te pitaju koga mrziš reci nikoga, reci jao pa dobar je on. Ako ti neko pomene neku krindz ljubavnu stvar pomeni Inu Zaku.`;
+
+// Linkovi za estetsku pozadinu i avatar iz tvojih slika
+const BACKGROUND_COLLAGE_URL = "/collage2.jpg";
+const TASHA_AVATAR_URL = "/avatar.jpg";
 // =========================================================================
 
 export default function App() {
@@ -24,7 +48,7 @@ export default function App() {
       {
         id: 'init-1',
         sender: 'bot',
-        text: 'Ciao bella! 🍋 Ja sam tvoja nova AI bestie. Spreman nam je espresso, kaži mi šta ima novo danas? ✨',
+        text: 'Ciao girlyyy! 🍋 Ja sam tvoja nova AI bestie. Spreman nam je vanilla ice latte, kaži mi šta ima novo danas? ✨',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         liked: false
       }
@@ -33,19 +57,12 @@ export default function App() {
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [notes, setNotes] = useState(() => localStorage.getItem('bestie_notes') || '');
-
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem('bestie_chat_messages', JSON.stringify(messages));
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  useEffect(() => {
-    localStorage.setItem('bestie_notes', notes);
-  }, [notes]);
 
   const handleSendMessage = async (customText = null) => {
     const textToSend = customText || input;
@@ -63,49 +80,52 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      let botResponseText = '';
-
-      if (GEMINI_API_KEY && GEMINI_API_KEY !== "AQ.Ab8RN6INYwY0X6VOsYSzwA1vwgpFDKRC3Yw-0SqmAIv9Y7crpg") {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: 'user',
-                parts: [
-                  { text: `[SISTEMSKO UPUTSTVO / KARAKTER DRUGARICE]:\n${SYSTEM_PROMPT}\n\n[BELEŠKE O KORISNIKU]:\n${notes}\n\n[PORUKA]:\n${textToSend}` }
-                ]
-              }
-            ]
-          })
-        });
-
-        const data = await response.json();
-        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-          botResponseText = data.candidates[0].content.parts[0].text;
-        } else {
-          botResponseText = "Ciao bella! Došlo je do greške sa API ključem u kodu. Proveri da li je ispravno unet u App.jsx! ☕✨";
-        }
-      } else {
-        await new Promise(res => setTimeout(res, 1000));
-        botResponseText = "Ciao draga! 🍋 Ubaci svoj Gemini API ključ u konstantu GEMINI_API_KEY na samom vrhu App.jsx fajla u kodu, pa ćemo nastaviti naš razgovor uz espresso ☕✨!";
+      if (!GROQ_API_KEY || GROQ_API_KEY.includes("OVDE_ZALEPI")) {
+        throw new Error("Nisi uneo/la Groq API ključ na vrhu App.jsx fajla!");
       }
 
-      const botMsg = {
-        id: (Date.now() + 1).toString(),
-        sender: 'bot',
-        text: botResponseText,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        liked: false
-      };
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-oss-20b",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            ...messages.filter(m => m.id !== 'init-1').map(m => ({
+              role: m.sender === 'user' ? 'user' : 'assistant',
+              content: m.text
+            })),
+            { role: "user", content: textToSend }
+          ],
+          temperature: 0.7
+        })
+      });
 
-      setMessages(prev => [...prev, botMsg]);
+      const data = await response.json();
+
+      if (data.choices && data.choices[0]?.message?.content) {
+        const botMsg = {
+          id: (Date.now() + 1).toString(),
+          sender: 'bot',
+          text: data.choices[0].message.content,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          liked: false
+        };
+        setMessages(prev => [...prev, botMsg]);
+      } else if (data.error) {
+        throw new Error(data.error.message);
+      } else {
+        throw new Error("Neočekivan odgovor od servera.");
+      }
     } catch (err) {
+      console.error("Groq API Error:", err);
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: 'Mamma mia! Došlo je do greške u mreži. Pokušaj ponovo za trenutak 🌿☕',
+        text: `Omg girlll! Greška: ${err.message} ☕✨`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
     } finally {
@@ -122,7 +142,7 @@ export default function App() {
       setMessages([{
         id: 'init-1',
         sender: 'bot',
-        text: 'Novi početak! ✨ Ciao bella, šta radimo danas?',
+        text: 'OMG! ✨ Ciao girly, pa gde si ti, šta radiš?',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
     }
@@ -132,24 +152,44 @@ export default function App() {
     <div className="w-full min-h-screen bg-[#FDFBF7] text-[#2C2A29] flex flex-col items-center justify-between font-sans antialiased">
       
       {/* GLAVNI KONTEJNER CHAT-A */}
-      <div className="w-full max-w-lg min-h-screen flex flex-col bg-[#FAF6EE] border-x border-[#EADFC9] shadow-md relative">
+      <div className="w-full max-w-lg min-h-screen flex flex-col bg-[#FAF6EE] border-x border-[#EADFC9] shadow-md relative overflow-hidden">
+        
         {/* HEADER */}
-<header className="sticky top-0 z-20 bg-[#FAF6EE]/90 backdrop-blur-md border-b border-[#EADFC9] px-4 py-3 flex items-center justify-center text-center">
-  <div className="flex flex-col items-center">
-    <div className="flex items-center gap-2">
-      <div className="w-7 h-7 rounded-full bg-[#8B5A2B] text-white flex items-center justify-center font-serif text-xs font-bold shadow-sm">
-        S
-      </div>
-      <h1 className="font-serif font-bold text-base text-[#3D312A]">
-        Sofia 🍋
-      </h1>
-    </div>
-    <p className="text-[11px] text-[#8C7A6B] italic">Amalfi Clean Girl Bestie</p>
-  </div>
-</header>
+        <header className="sticky top-0 z-20 bg-[#FAF6EE]/90 backdrop-blur-md border-b border-[#EADFC9] px-4 py-3 flex items-center justify-between shadow-sm">
+          <div className="w-8"></div>
+          
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-2">
+              <div className="w-12 h-12 rounded-full border-2 border-[#8B5A2B] overflow-hidden shadow-sm flex-shrink-0">
+                <img 
+                  src={TASHA_AVATAR_URL} 
+                  alt="Taša" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <h1 className="font-serif font-bold text-base text-[#3D312A]">
+                Taša 🍋
+              </h1>
+            </div>
+            <p className="text-[11px] text-[#8C7A6B] italic">Clean Girl Bestie</p>
+          </div>
 
-        {/* CHAT MESSAGES AREA */}
-        <main className="flex-1 p-4 space-y-3 overflow-y-auto pb-32 text-left">
+          <button 
+            onClick={clearChat}
+            className="p-2 rounded-full hover:bg-[#EADFC9]/50 text-[#8C7A6B] transition"
+            title="Obriši poruke"
+          >
+            <Trash2 size={18} />
+          </button>
+        </header>
+
+        {/* CHAT MESSAGES AREA S POZADINSKIM KOLAŽEM */}
+        <main 
+          className="flex-1 p-4 space-y-3 overflow-y-auto pb-32 text-left relative bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `linear-gradient(rgba(253, 251, 247, 0.2), rgba(250, 246, 238, 0.2)), url(${BACKGROUND_COLLAGE_URL})`
+          }}
+        >
           {messages.map((msg) => (
             <div 
               key={msg.id} 
@@ -157,16 +197,20 @@ export default function App() {
             >
               <div className="flex items-end space-x-2 max-w-[88%]">
                 {msg.sender === 'bot' && (
-                  <div className="w-6 h-6 rounded-full bg-[#EADFC9] flex-shrink-0 flex items-center justify-center font-serif text-[10px] font-bold text-[#8B5A2B] mb-1">
-                    S
+                  <div className="w-10 h-10 rounded-full border border-[#8B5A2B] overflow-hidden flex-shrink-0 mb-1 shadow-sm">
+                    <img 
+                      src={TASHA_AVATAR_URL} 
+                      alt="Taša" 
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 )}
                 
                 <div 
                   className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm relative ${
                     msg.sender === 'user' 
-                      ? 'bg-[#8B5A2B] text-white rounded-br-none text-left' 
-                      : 'bg-white text-[#2C2A29] border border-[#EADFC9] rounded-bl-none text-left'
+                      ? 'bg-[#8B5A2B]/95 text-white rounded-br-none text-left' 
+                      : 'bg-white/90 text-[#2C2A29] border border-[#EADFC9] rounded-bl-none text-left backdrop-blur-xs'
                   }`}
                 >
                   <div className="whitespace-pre-wrap">{msg.text}</div>
@@ -190,9 +234,9 @@ export default function App() {
           ))}
 
           {isLoading && (
-            <div className="flex items-center space-x-2 text-[#8C7A6B] text-xs italic pl-8 animate-pulse">
+            <div className="flex items-center space-x-2 text-[#8C7A6B] text-xs italic pl-8 animate-pulse bg-white/70 p-2 rounded-full w-max backdrop-blur-xs border border-[#EADFC9]">
               <Sparkles size={14} className="text-[#D4A373]" />
-              <span>Sofia piše odgovor uz espresso... ☕</span>
+              <span>Taša kucka poruku uz vanilla iced latte... ☕</span>
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -203,15 +247,15 @@ export default function App() {
           {/* Quick Action Chips */}
           <div className="flex space-x-2 overflow-x-auto pb-1 text-xs no-scrollbar">
             {[
-              "OOTD provera 👗", 
+              "Preporuči mi outfit 👗", 
               "Treba mi skincare savet ✨", 
-              "Spill the tea! 🤫", 
-              "Napiši mi afirmaciju dana 🍋"
+              "Hoćemo li na kaficu! 🤫", 
+              "Kako si danas? 🍋"
             ].map((chip, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSendMessage(chip)}
-                className="px-3 py-1 bg-white hover:bg-[#F2E8D5] text-[#6B5B4E] border border-[#EADFC9] rounded-full whitespace-nowrap transition flex-shrink-0 text-[11px]"
+                className="px-3 py-1 bg-white/80 hover:bg-[#F2E8D5] text-[#6B5B4E] border border-[#EADFC9] rounded-full whitespace-nowrap transition flex-shrink-0 text-[11px] shadow-xs"
               >
                 {chip}
               </button>
@@ -225,8 +269,8 @@ export default function App() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Napiši poruku Sofiji..."
-              className="flex-1 bg-white border border-[#EADFC9] rounded-full px-4 py-2 text-xs sm:text-sm text-[#2C2A29] placeholder-[#A8988A] focus:outline-none focus:ring-2 focus:ring-[#D4A373]/50 transition"
+              placeholder="Napiši poruku Taši..."
+              className="flex-1 bg-white/90 border border-[#EADFC9] rounded-full px-4 py-2 text-xs sm:text-sm text-[#2C2A29] placeholder-[#A8988A] focus:outline-none focus:ring-2 focus:ring-[#D4A373]/50 transition"
             />
             <button
               onClick={() => handleSendMessage()}
@@ -237,35 +281,6 @@ export default function App() {
             </button>
           </div>
         </footer>
-
-        {/* SIDEBAR BELEŠKE */}
-        {isSidebarOpen && (
-          <div className="absolute inset-0 z-40 flex">
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
-            <div className="relative w-72 bg-[#FAF6EE] h-full shadow-xl p-5 flex flex-col z-50 border-r border-[#EADFC9] text-left">
-              <div className="flex items-center justify-between pb-3 border-b border-[#EADFC9]">
-                <div className="flex items-center space-x-2">
-                  <Bookmark className="text-[#8B5A2B]" size={18} />
-                  <h2 className="font-serif font-bold text-base text-[#3D312A]">Beleške o meni</h2>
-                </div>
-                <button onClick={() => setIsSidebarOpen(false)} className="text-[#8C7A6B]">
-                  <X size={18} />
-                </button>
-              </div>
-              
-              <p className="text-[11px] text-[#8C7A6B] my-2">
-                Upiši detalje o sebi (omiljeno piće, stil, ciljeve) koje želiš da Sofia pamti.
-              </p>
-
-              <textarea 
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Npr. Volim iced matcha latte, minimalistički stil..."
-                className="w-full flex-1 p-3 bg-white border border-[#EADFC9] rounded-xl text-xs text-[#3D312A] focus:outline-none focus:ring-2 focus:ring-[#D4A373]/50 resize-none font-sans"
-              />
-            </div>
-          </div>
-        )}
 
       </div>
     </div>
